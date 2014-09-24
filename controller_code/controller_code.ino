@@ -3,6 +3,7 @@
 */
 
 #include <CmdMessenger.h> // obtained from http://thijs.elenbaas.net/downloads/?did=9
+#include <PID_v1.h>
 
 #define PROG_VERSION 1
 #define NR_OF_LASERS 1
@@ -42,11 +43,11 @@ const byte INT_EVENT_PIN = 19; // Pin where the LIGHT and LOCK event interrupt i
 const byte INT_EVENT_NR = 4;   // Number of the LIGHT and LOCK event interrupt.
 
 const unsigned int PUBLISH_FREQUENCY = 1000; // in miliseconds
-const unsigned int ADJUST_FREQUENCY = 100; // in miliseconds
+const unsigned int ADJUST_FREQUENCY = 50; // in miliseconds
 const unsigned int SAMPLE_FREQUENCY = 10;   // in miliseconds
 
-const byte TEMP_MAX[3]     = {125, 110, 125}; // {TP ,TD ,TL} Absolute maximum temperatures.
-const byte TEMP_BACKOFF[3] = {80,  80, 100}; // {TP ,TD ,TL} Maximum normal operating temperatures.
+const unsigned long TEMP_MAX = 120*1000; // Absolute maximum temperatures in MiliCelcius
+double TEMP_BACKOFF = 100*1000; // Maximum normal operating temp in MiliCelcius
 
 // --- Globals -----------------
 byte ProgramState;
@@ -57,11 +58,19 @@ unsigned long PreviousPublishUpdate = 0; // Miliseconds of the last update.
 unsigned long PreviousSampleUpdate  = 0; // Miliseconds of the last sample update;
 unsigned long SampleNrs; // Number of samples taken
 unsigned long AdjustNrs; // Number of adjustments done between publication.
-volatile byte LaserPower[NR_OF_LASERS];      // Current power to the lasers. Value from 0 to 100.
-byte LaserPowerReq[NR_OF_LASERS]; // Power requested of the lasers
+double LaserPower[NR_OF_LASERS];      // Current power to the lasers. Value from 0 to 255.
+byte LaserPowerReq[NR_OF_LASERS]; // Power requested of the lasers. Value from 0 to 255.
 unsigned long SampleTotals[NR_OF_LASERS][3]; // {TP ,TD ,TL}; Sum of all samples.
                                              // Divide with SampleNrs to get average value
 unsigned long Temperatures[NR_OF_LASERS][3]; // {TP ,TD ,TL}; Last calculated temperatures in miliCelcius.
+double PID_temperatures[NR_OF_LASERS]; // Temperature that's relevant for the PID controller.
+PID LaserPID[5] = {
+        PID(&PID_temperatures[0], &LaserPower[0], &TEMP_BACKOFF, 1, 1, 1, DIRECT),
+        PID(&PID_temperatures[1], &LaserPower[1], &TEMP_BACKOFF, 1, 1, 1, DIRECT),
+        PID(&PID_temperatures[2], &LaserPower[2], &TEMP_BACKOFF, 1, 1, 1, DIRECT),
+        PID(&PID_temperatures[3], &LaserPower[3], &TEMP_BACKOFF, 1, 1, 1, DIRECT),
+        PID(&PID_temperatures[4], &LaserPower[4], &TEMP_BACKOFF, 1, 1, 1, DIRECT)
+};
 
 enum { // States of the machine.
   sInit                 , // State during startup routine
@@ -109,7 +118,7 @@ void OnUnknownCommand()
 void OnSetLasers() {
     for(byte l_nr=0; l_nr<NR_OF_LASERS; l_nr++) { // grab the arguments
         byte cmd_value = cmdMessenger.readInt16Arg();
-        LaserPowerReq[l_nr] = constrain(cmd_value, 0, 100);
+        LaserPowerReq[l_nr] = constrain(cmd_value, 0, 255);
     }
     // Create the response reporting the values.
     cmdMessenger.sendCmdStart(kAcknowledge);
@@ -140,6 +149,10 @@ void setup(void) {
     attachCommandCallbacks();
     ResetSampleValues();
     PopTime = 0;
+    for(byte l_nr=0; l_nr<NR_OF_LASERS; l_nr++) {
+        LaserPID[l_nr].SetMode(MANUAL);
+        LaserPID[l_nr].SetOutputLimits(0, 255);
+    }
 //    attachInterrupt(INT_EVENT_NR, InterruptHandler, RISING);
     ProgramState = sStandBy;
     PublishReady(); // Send the status to the PC that says the Arduino has booted
@@ -183,46 +196,42 @@ void CollectSamples() {
 
 void CalculateTemperatures(byte l_nr) {
     Temperatures[l_nr][TP] = Calc_temp_LT3086(SampleNrs, SampleTotals[l_nr][TP]);
-    Temperatures[l_nr][TD] = Calc_temp_LT3086(SampleNrs, SampleTotals[l_nr][TD]);
-    Temperatures[l_nr][TL] = Calc_temp_LT3086(SampleNrs, SampleTotals[l_nr][TL]);
+    Temperatures[l_nr][TD] = Calc_temp_MCP9701A(SampleNrs, SampleTotals[l_nr][TD]);
+    Temperatures[l_nr][TL] = Calc_temp_MCP9701A(SampleNrs, SampleTotals[l_nr][TL]);
 }
 
 void AdjustPower(byte l_nr) {
-//    for (byte i=0; i<3; i++) { // emergency situation. Thermally out of control!
-//        if(Temperatures[l_nr][i] > ((unsigned long)TEMP_MAX[i])*1000) {
-//            LaserSetAll(0); // Shutdown!
-//            PublishLaserTemperatureCriticalError(l_nr, i);
-//        }
-//    }
-
-    // Are be below or above acceptable temperatures?
-//    bool below_backoff = true;
-//    for (byte i=0; i<3; i++) {
-//        if(Temperatures[l_nr][i] > ((unsigned long) TEMP_BACKOFF[i])*1000) {
-//            below_backoff = false;
-//            break;
-//        }
-//    }
-//    if(below_backoff == true) { // We're not over temperature.
-//        if(LaserPowerReq[l_nr] == LaserPower[l_nr]) { // Power is equal to requested power.
-//            return; // Nothing to do.
-//        }
-        if(LaserPowerReq[l_nr] > LaserPower[l_nr]) { // we want to give more power to the lasers.
-            LaserChange(l_nr, 1);
-        } else { // we want to give less power to the lasers.
-            LaserChange(l_nr, -1);
-            // LaserSet(l_nr, 0); // alternative. Turning off lasers is immediate.
+    LaserPID[l_nr].Compute();
+    PID_temperatures[l_nr] = 0;
+    for (byte i=0; i<3; i++) { // Emergency situation. Thermally out of control!
+        if(LaserPowerReq[l_nr] > 0 && Temperatures[l_nr][i] > TEMP_MAX) {
+            LaserPowerReq[l_nr] = 0;
+            LaserSetAll(0); // Shutdown!
+            PublishLaserTemperatureCriticalError(l_nr, i);
         }
-//    } else { // we're too warm. Reduce laser power to reduce temperature.
-//         PublishLaserOverTemperatureInfo(l_nr);
-//         LaserChange(l_nr, -1);
-//    }
+        PID_temperatures[l_nr] = max(PID_temperatures[l_nr], Temperatures[l_nr][i]); // The highest temperature will be used.
+    }
+    if(LaserPID[l_nr].GetMode() == MANUAL) { // We're in manual mode.
+        if(PID_temperatures[l_nr] >= TEMP_BACKOFF) { // Too warm, PID takes over!
+            PublishLaserOverTemperatureInfo(l_nr);
+            LaserPID[l_nr].SetMode(AUTOMATIC);
+        } else {
+            LaserSet(l_nr, LaserPower[l_nr]);
+        }
+    } else { // PID is active.
+        if(LaserPowerReq[l_nr] == 0) { // If requested power is 0, we always release from PID control.
+            LaserPID[l_nr].SetMode(MANUAL);
+            LaserSet(l_nr, 0);
+        } else {
+            LaserSet(l_nr, LaserPower[l_nr]); // Set the laser according to the PID control
+        }
+    }
 }
 
 void PublishLaserOverTemperatureInfo(byte l_nr) { // What laser is involved.
     cmdMessenger.sendCmdStart(kOverTemperature);
     cmdMessenger.sendCmdArg(l_nr);
-    cmdMessenger.sendCmdArg("Reported Over temperature. Backing down.");
+    cmdMessenger.sendCmdArg(F("Reported Over temperature. PID Taking over."));
     cmdMessenger.sendCmdEnd();
 
 }
@@ -232,7 +241,7 @@ void PublishLaserTemperatureCriticalError(byte l_nr,  // What laser is involved.
     cmdMessenger.sendCmdStart(kError);
     cmdMessenger.sendCmdArg(l_nr);
     cmdMessenger.sendCmdArg(t_source);
-    cmdMessenger.sendCmdArg("Reported absolute maximum trespass!");
+    cmdMessenger.sendCmdArg(F("Reported absolute maximum trespass!"));
     cmdMessenger.sendCmdEnd();
 }
 
@@ -263,9 +272,9 @@ void PublishLaserUpdate(byte l_nr) {
 // Callback function that responds that Arduino is ready (has booted up)
 void PublishReady()
 {
-    cmdMessenger.sendCmd(kAcknowledge,"READY: Laser-pop control v1");
+    cmdMessenger.sendCmd(kAcknowledge,F("READY: Laser-pop control v1"));
     cmdMessenger.sendCmdStart(kConfigInfo);
-    cmdMessenger.sendCmdArg("NUMBER_OF_LASERS");
+    cmdMessenger.sendCmdArg(F("NUMBER_OF_LASERS"));
     cmdMessenger.sendCmdArg(NR_OF_LASERS);
     cmdMessenger.sendCmdEnd();
 }
@@ -303,9 +312,8 @@ void LaserSetAll(byte output_level) {
 }
 
 byte LaserSet(byte laser_nr, byte output_level) {
-    output_level = constrain(output_level, 0, 100);
-    byte pwm_value = map(output_level, 0, 100, 0, 255);
-    analogWrite(PINS_LASER[laser_nr][LC_PIN], pwm_value);
+    output_level = constrain(output_level, 0, 255);
+    analogWrite(PINS_LASER[laser_nr][LC_PIN], output_level);
     LaserPower[laser_nr] = output_level;
     return output_level;
 }
