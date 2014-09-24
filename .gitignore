@@ -1,0 +1,5 @@
+*.off
+*.orig
+.idea/
+eagle/*.?#?
+eagle/*.pdf
