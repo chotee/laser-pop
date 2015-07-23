@@ -1,18 +1,18 @@
-base_rad=50;
-height=3;
-thickness=1.5;
-disks=5;
-for(i= [0:floor(base_rad/height)]) {
-	echo(i, 
-i*3/base_rad, 
-asin(i*height/base_rad), 
-cos(asin(i*height/base_rad))*base_rad
-);
-	#translate([0,i%disks*base_rad*2,floor(i/disks)*(height+1)]) {
-	//translate([0,0,i*height]) {
-        render() difference() {
-            cylinder(h=height, r=cos(asin(i*height/base_rad))*(base_rad), $fn=50);
-            cylinder(h=height, r=cos(asin((i+1)*height/base_rad))*(base_rad)-thickness, $fn=50); 
-    }
-	}
+use <basics.scad>
+use <laser_elements.scad>
+use <penta_elements.scad>
+
+module base_plate() {
+    base_plate_thickness = 3;
+    base_plate_width = 500;
+    base_plate_height = 500;
+    cube([base_plate_height, base_plate_width, base_plate_thickness], true);
 }
+
+module kernel() {
+    scale([8,8,10]) sphere(1, $fn=12);
+}
+
+//kernel(); // The center of it all.
+//base_plate();
+LaserMount();

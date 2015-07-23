@@ -7,6 +7,7 @@ WallWidth=3;
 WallHeight=20;
 Dihedral_angle=116.56505;
 
+
 module Penta_part(r,h) {
 polyhedron(
 	points=[
@@ -72,36 +73,19 @@ module Base() {
 	}
 }
 
-module BasePlate() {
-	//difference() {
-		Penta(BaseWidth,BasePlateThickness);
-	//	cube([10,10,10], center=true);
-		color("Purple") translate([0,0,-0.1]) rotate([0,0,72/2]) Penta(ChamberWidth+ChamberWidth*1.18*cos(180-Dihedral_angle),BasePlateThickness+0.2);
-	//}
-}
+//module BasePlate() {
+//	//difference() {
+//		Penta(BaseWidth,BasePlateThickness);
+//	//	cube([10,10,10], center=true);
+//		color("Purple") translate([0,0,-0.1]) rotate([0,0,72/2]) Penta(ChamberWidth+ChamberWidth*1.18*cos(180-Dihedral_angle),BasePlateThickness+0.2);
+//	//}
+//}
 
 module BaseWalls() {
 	render() difference() {
 		Penta(BaseWidth,WallHeight);
 		Penta(BaseWidth-WallWidth,WallHeight);
 	}
-}
-
-module PSU() {
-	PsuX=150;
-	PsuY=150;
-	PsuZ=100;
-	translate([-PsuX/2,ChamberWidth,-PsuZ]) cube([PsuX, PsuY, PsuZ]);
-}
-
-module LaserPCB() {
-	color("Green") cube([50,50,30], center=true);
-}
-module LaserDiode() {
-	color("Red") cube([35,35,30], center=true);
-}
-module LaserSink() {
-	color("Blue") cube([25,35,30], center=true);
 }
 
 module Integration() {
