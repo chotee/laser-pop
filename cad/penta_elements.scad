@@ -29,16 +29,16 @@ polyhedron(
 }
 
 module Penta_segment(r, h) {
-polyhedron(
+translate([0, cos(72)*r,0]) polyhedron(
 	points=[
-		[sin(72*1)*r, cos(72*1)*r, 0],
-		[sin(72*2)*r, cos(72*2)*r, 0],
-		[sin(72*3)*r, cos(72*3)*r, 0],
-		[sin(72*4)*r, cos(72*4)*r, 0],
-		[sin(72*1)*r, cos(72*1)*r, h],
-		[sin(72*2)*r, cos(72*2)*r, h],
-		[sin(72*3)*r, cos(72*3)*r, h],
-		[sin(72*4)*r, cos(72*4)*r, h]
+		[sin(72*1)*r, -cos(72*1)*r, 0],
+		[sin(72*2)*r, -cos(72*2)*r, 0],
+		[sin(72*3)*r, -cos(72*3)*r, 0],
+		[sin(72*4)*r, -cos(72*4)*r, 0],
+		[sin(72*1)*r, -cos(72*1)*r, h],
+		[sin(72*2)*r, -cos(72*2)*r, h],
+		[sin(72*3)*r, -cos(72*3)*r, h],
+		[sin(72*4)*r, -cos(72*4)*r, h]
 	], 
 	faces=[
 		[0,1,2,3],
