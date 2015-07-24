@@ -25,10 +25,10 @@ module LaserMount() { // The mount and lens housing and fixing the laser diode.
                 translate([laser_mount_width - laser_mount_side_width, 0, 0]) cube([laser_mount_side_width, laser_mount_length, laser_mount_side_thickness]);
                 translate([laser_mount_side_width, 0, 0]) cube([laser_mount_width-2*laser_mount_side_width, laser_mount_length, laser_mount_height]);
             }
-            translate([laser_mount_side_width/2, laser_mount_length/3]) drill_hole(laser_mount_drill_hole_size);
-            translate([laser_mount_side_width/2, laser_mount_length/3*2]) drill_hole(laser_mount_drill_hole_size);
-            translate([laser_mount_width - laser_mount_side_width/2, laser_mount_length/3]) drill_hole(laser_mount_drill_hole_size);
-            translate([laser_mount_width - laser_mount_side_width/2, laser_mount_length/3*2]) drill_hole(laser_mount_drill_hole_size);
+//            translate([laser_mount_side_width/2, laser_mount_length/3]) drill_hole(laser_mount_drill_hole_size);
+//            translate([laser_mount_side_width/2, laser_mount_length/3*2]) drill_hole(laser_mount_drill_hole_size);
+//            translate([laser_mount_width - laser_mount_side_width/2, laser_mount_length/3]) drill_hole(laser_mount_drill_hole_size);
+//            translate([laser_mount_width - laser_mount_side_width/2, laser_mount_length/3*2]) drill_hole(laser_mount_drill_hole_size);
         }
         translate([0,-1,0]) rotate([-90, 0,0]) cylinder(h=50, d=10);
     }
