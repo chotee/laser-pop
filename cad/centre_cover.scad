@@ -18,7 +18,7 @@ module kernel() {
 module dome(r) {
     color("Sienna") translate([0,0, sin(72)*(100*1.11803)-6]) Penta(100, 3);
     for(i=[0:4]) {
-        rotate([0,0,i*72]) translate([0,-(1.3)*100,0]) rotate([180-Dihedral_angle,0,0]) Penta_segment(100, 3);
+        color("Crimson") rotate([0,0,i*72]) translate([0,-(1.3)*100,0]) rotate([180-Dihedral_angle,0,0]) Penta_segment(100, 3);
     }
 }
 
@@ -36,7 +36,7 @@ module light_sink() {
 
 module laser_setup() {
     tube_external_diameter = 15.88;
-    translate([-50, -300, -12]) cube([100,150,3]);
+    color("LightCyan") translate([-50, -300, -12]) cube([100,150,3]);
     translate([0, -70, 0]) light_guide(tube_external_diameter, 1, 100);
     translate([0, -175, ]) rotate([0,0,180]) LaserMount();
     translate([0, -250, 5]) LaserCurrentControl();
