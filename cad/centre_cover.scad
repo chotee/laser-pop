@@ -46,14 +46,23 @@ module light_sink() {
     color("MidnightBlue") rotate([-90, 0, 0]) cylinder(d=sink_diam, h=1);
 }
 
+module laser_beam() {
+    color("Blue") rotate([90,0,0]) {
+        //translate([0,0,10]) cylinder(d=2mm, h=340, center=true);
+        translate([0,0,0]) cylinder(d=2mm, h=180, center=false);
+    }
+
+}
+
 module laser_setup() {
     tube_external_diameter = 15.88;
     color("LightCyan") translate([-50, -300, -12]) cube([100,150,3]);
-    translate([0, -70, 0]) light_guide(tube_external_diameter, 1, 100);
+    translate([0, -110, 0]) light_guide(tube_external_diameter, 1, 60);
     translate([0, -175, ]) rotate([0,0,180]) LaserMount();
     translate([0, -250, 5]) LaserCurrentControl();
-    translate([0,  70+100, 0]) light_guide(tube_external_diameter, 1, 100);
+    translate([0,  70+100, 0]) light_guide(tube_external_diameter, 1, 50);
     translate([0,  70+100, 0]) light_sink();
+    translate([]) laser_beam();
 }
 
 kernel(); // The center of it all.
