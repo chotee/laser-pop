@@ -20,10 +20,31 @@ module top_plate(size) {
     color("Sienna") translate([0,0, sin(72)*(size*1.11803)-6]) Penta(size, material_thickness);
 }
 
+module dome_connector_side() {
+    connector_thickness = 1.5;
+    difference() {
+
+        translate([0,0,connector_thickness/2]) cube([20,15,connector_thickness], center=true);
+        translate([0,0,0]) drill_hole(3);
+    }
+}
+
+
+module dome_connector() {
+    //translate([0,cos(72)*-70,sin(72)*70]) rotate([-Dihedral_angle+180,0,0])
+    translate([50,70,0]) dome_connector_side();
+    //translate([0,20,0]) rotate([72,0,0]) dome_connector_side();
+}
+
 module dome(size) {
+    side_offset_angle = 0; // 1.5;
     material_thickness = 3;
-    for(i=[0:4]) {
-        color("Crimson", 0.7) rotate([0,0,i*72]) translate([0,-(1.3)*size,0]) rotate([180-Dihedral_angle,0,0]) Penta_segment(size, material_thickness);
+    for(i=[0:0]) {
+
+        rotate([0,0,i*72]) translate([0,-(1.285)*size,0]) rotate([180-Dihedral_angle,0,side_offset_angle]) {
+            color("Crimson", 0.7) Penta_segment(size, material_thickness);
+            dome_connector();
+        }
     }
 }
 
@@ -48,8 +69,8 @@ module light_sink() {
 
 module laser_beam() {
     color("Blue") rotate([90,0,0]) {
-        //translate([0,0,10]) cylinder(d=2mm, h=340, center=true);
-        translate([0,0,0]) cylinder(d=2mm, h=180, center=false);
+        //translate([0,0,10]) cylinder(d=2, h=340, center=true);
+        translate([0,0,0]) cylinder(d=2, h=180, center=false);
     }
 
 }
@@ -65,10 +86,11 @@ module laser_setup() {
     translate([]) laser_beam();
 }
 
+dome_connector();
 kernel(); // The center of it all.
 //color("LightGrey") translate([0,0,-20]) base_plate();
 //translate([0,0,-20]) top_plate(100);
-translate([0,0,0]) dome(100);
+!translate([0,0,0]) dome(100);
 translate([0,0,0]) anti_dome(100);
 for(i=[0:4]) {
     rotate([-8*i,0,72*i]) laser_setup();
