@@ -15,10 +15,22 @@ module kernel() {
     scale([8,8,10]) sphere(1, $fn=12);
 }
 
-module dome(r) {
-    color("Sienna") translate([0,0, sin(72)*(100*1.11803)-6]) Penta(100, 3);
+module top_plate(size) {
+    material_thickness = 3;
+    color("Sienna") translate([0,0, sin(72)*(size*1.11803)-6]) Penta(size, material_thickness);
+}
+
+module dome(size) {
+    material_thickness = 3;
     for(i=[0:4]) {
-        color("Crimson") rotate([0,0,i*72]) translate([0,-(1.3)*100,0]) rotate([180-Dihedral_angle,0,0]) Penta_segment(100, 3);
+        color("Crimson", 0.) rotate([0,0,i*72]) translate([0,-(1.3)*size,0]) rotate([180-Dihedral_angle,0,0]) Penta_segment(size, material_thickness);
+    }
+}
+
+module anti_dome(size) {
+    material_thickness = 3;
+    for(i=[0:4]) {
+        color("FireBrick", 0.7) rotate([0,0,i*72]) translate([0,-(1.3)*size-material_thickness,0]) rotate([-180+Dihedral_angle,0,0]) Penta_segment(size, material_thickness);
     }
 }
 
@@ -46,8 +58,9 @@ module laser_setup() {
 
 kernel(); // The center of it all.
 //color("LightGrey") translate([0,0,-20]) base_plate();
-translate([0,0,-20]) dome();
-//Penta_segment(100, 3);
+//translate([0,0,-20]) top_plate(100);
+translate([0,0,0]) dome(100);
+translate([0,0,0]) anti_dome(100);
 for(i=[0:4]) {
     rotate([-8*i,0,72*i]) laser_setup();
 }
