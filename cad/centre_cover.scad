@@ -23,7 +23,7 @@ module top_plate(size) {
 module dome(size) {
     material_thickness = 3;
     for(i=[0:4]) {
-        color("Crimson", 0.) rotate([0,0,i*72]) translate([0,-(1.3)*size,0]) rotate([180-Dihedral_angle,0,0]) Penta_segment(size, material_thickness);
+        color("Crimson", 0.7) rotate([0,0,i*72]) translate([0,-(1.3)*size,0]) rotate([180-Dihedral_angle,0,0]) Penta_segment(size, material_thickness);
     }
 }
 
